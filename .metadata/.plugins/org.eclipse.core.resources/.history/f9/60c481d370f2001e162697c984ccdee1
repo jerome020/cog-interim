@@ -1,0 +1,16 @@
+package com.vitacure.pharmacyservice.repository;
+
+/**
+ * @author Kritidipta Ghosh
+ */
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.pharmacyservice.model.Pharmacy;
+
+
+@Repository
+public interface PharmacyRepository extends JpaRepository<Pharmacy, String>{
+	
+}

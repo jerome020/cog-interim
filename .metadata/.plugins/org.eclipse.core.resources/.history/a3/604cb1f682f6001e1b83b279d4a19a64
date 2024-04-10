@@ -1,0 +1,155 @@
+package com.medicineservice.controller;
+
+
+import java.util.*;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.medicineservice.model.Medicine;
+import com.medicineservice.model.MedicineStockDto;
+import com.medicineservice.response.ApiResponse;
+import com.medicineservice.service.MedicineService;
+
+import jakarta.validation.Valid;
+
+
+@RestController
+@RequestMapping("/medicine")
+public class MedicineController {
+	
+	@Autowired
+	private MedicineService medService;
+
+	
+	@GetMapping("/health")
+	public String health() {
+		return "Medicine-service health: OK";
+	}
+	
+	@GetMapping("/{medId}")
+	public ResponseEntity<?> getMedicineInfo(@PathVariable String medId) {
+		Medicine response = medService.getMedicineById(medId);
+		return new ResponseEntity<Medicine>(response,HttpStatus.OK);
+	}
+	
+//	@GetMapping("/allMedicines")
+//	public ResponseEntity<List<Medicine>> getAllMedicines(){
+//		List<Medicine> response = medService.getAllMedicines();
+//		return new ResponseEntity<>(response,HttpStatus.OK);
+//	}
+	
+	@GetMapping("/allMedicines")  // new implementation 
+	public ResponseEntity<?> getAllMedicines(){
+		List<Medicine> response = medService.getAllMedicines();
+		
+		return new ResponseEntity<>(response,HttpStatus.OK );
+	}
+	
+	
+	
+	@GetMapping("/byAilment/{targetAilment}")
+	public ResponseEntity<?> getMedicineByAilment(@PathVariable String targetAilment){
+		List<String> response = medService.getMedicineByAilment(targetAilment);
+		if(response == null || response.size() == 0) {
+			return new ResponseEntity<ApiResponse>(new ApiResponse(false,"No medicine found"),
+					HttpStatus.NOT_FOUND
+					);
+		}
+		return new ResponseEntity<List<String>>(
+				response,
+				HttpStatus.OK
+				);
+	}
+	
+	@PutMapping("/updateStock")
+	public ResponseEntity<ApiResponse> updateStock(@Valid @RequestBody MedicineStockDto medDto){
+		try {
+			int response = medService.updateStock(medDto);
+			
+			if(response == -1) {
+				return new ResponseEntity<ApiResponse>(
+						new ApiResponse(false, "Medicine name not found"),
+						HttpStatus.NOT_FOUND
+						);
+			}
+			
+			if(response == 0) {
+				return new ResponseEntity<ApiResponse>(
+						new ApiResponse(false, "Medicine Stock is not sufficient"),
+						HttpStatus.BAD_REQUEST
+						);
+			}
+			
+			return new ResponseEntity<ApiResponse>(
+					new ApiResponse(true, "Successfully updated the stock"),
+					HttpStatus.OK
+					);
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+			return new ResponseEntity<>(
+					new ApiResponse(false, e.getMessage()),
+					HttpStatus.BAD_GATEWAY
+					);
+		}
+	}
+	@PostMapping("/add")
+	public ResponseEntity<?> insertNewMedicine(@Valid @RequestBody Medicine med) {
+		try {
+			Medicine res = medService.insertOrUpdateMedicine(med);
+			if(res == null) throw new Exception();
+			return new ResponseEntity<ApiResponse>(
+					new ApiResponse(true, "Created"),
+					HttpStatus.CREATED
+					);
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+			return new ResponseEntity<ApiResponse>(
+					new ApiResponse(false, e.getMessage()),
+					HttpStatus.BAD_GATEWAY
+					);
+		}
+		
+	}
+	
+	@PutMapping("/update")
+	public ResponseEntity<?> updateMedicineInfo(@Valid @RequestBody Medicine med){
+		try {
+			medService.insertOrUpdateMedicine(med);
+			return new ResponseEntity<ApiResponse>(
+					new ApiResponse(true, "Updated the data successfully."),
+					HttpStatus.OK
+					);
+			
+		}catch(Exception e) {
+			e.printStackTrace();
+			return new ResponseEntity<ApiResponse>(
+					new ApiResponse(false, e.getMessage()),
+					HttpStatus.BAD_GATEWAY
+					);
+		}
+
+	}
+	
+	
+	@DeleteMapping("/{medId}")
+	public ResponseEntity<?> deleteMedicineById(@PathVariable String medId) {
+		medService.deleteMedicineById(medId);
+		return new ResponseEntity<ApiResponse>(
+				new ApiResponse(true,
+						"Successfully deleted from the database."),
+				HttpStatus.NO_CONTENT
+				);
+	}
+}

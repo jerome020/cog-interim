@@ -1,0 +1,190 @@
+package com.pharmacyservice.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.pharmacyservice.model.Order;
+import com.pharmacyservice.model.OrderWrapper;
+import com.pharmacyservice.model.Pharmacy;
+import com.pharmacyservice.model.PharmacyWrapper;
+import com.pharmacyservice.model.Supply;
+//import com.vitacure.pharmacyservice.model.SupplyWrapper;
+import com.vitacure.pharmacyservice.response.ApiResponse;
+import com.vitacure.pharmacyservice.service.PharmacyService;
+
+import jakarta.validation.Valid;
+
+/**
+ * @author Kritidipta Ghosh
+ */
+
+
+@RestController
+@RequestMapping("/pharmacy")
+public class PharmacyController {
+	
+	@Autowired
+	private PharmacyService pharmaService;
+	
+	
+	@GetMapping("/health")
+	public String checkHealth() {
+		return "OK";
+	}
+	
+	
+	@GetMapping("/allPharmacies")
+	public ResponseEntity<?> getAllPharmacies(){
+		List<PharmacyWrapper> allPharmas = pharmaService.getAllPharmacies();
+		if(allPharmas.isEmpty()) {
+			return new ResponseEntity<ApiResponse>(
+					new ApiResponse(false, "No pharmacy found"),
+					HttpStatus.NOT_FOUND
+					);
+		}
+		return new ResponseEntity<List<PharmacyWrapper>>(
+				allPharmas,
+				HttpStatus.OK
+				);
+	}
+	
+	@GetMapping("/{pharmaId}")
+	public ResponseEntity<?> getPharmacyById(@PathVariable String pharmaId){
+		PharmacyWrapper response = pharmaService.getPharmacyById(pharmaId);
+		if(response == null) {
+			return new ResponseEntity<ApiResponse>(
+					new ApiResponse(false, "No pharmacy found with this id"),
+					HttpStatus.NOT_FOUND
+					);
+		}
+		return new ResponseEntity<PharmacyWrapper>(
+				response,
+				HttpStatus.OK
+				);
+		
+	}
+	
+	@PostMapping("/place-order")
+	public ResponseEntity<?> placeOrder(@Valid @RequestBody Order order){
+		
+		try {
+			boolean response = pharmaService.placeOrder(order);
+			
+			if(response == false) {
+				return new ResponseEntity<ApiResponse>(
+						new ApiResponse(false,
+								"Order cannot be placed"),
+						HttpStatus.BAD_REQUEST);
+			}
+			
+			return new ResponseEntity<ApiResponse>(
+					new ApiResponse(true,
+							"Order placed succesfully"),
+					HttpStatus.OK);
+			
+		}catch(Exception e){
+			e.printStackTrace();
+			return new ResponseEntity<ApiResponse>(
+					new ApiResponse(false,
+							e.getMessage()),
+					HttpStatus.BAD_GATEWAY);
+		}
+	}
+	
+	@PostMapping("/addPharmacy")
+	public ResponseEntity<?> addPharmacy(@Valid @RequestBody Pharmacy pharmacy){
+		try {
+			boolean response = pharmaService.addPharmacy(pharmacy);
+			
+			if(response == false) {
+				return new ResponseEntity<ApiResponse>(
+						new ApiResponse(false,
+								"Insufficient Information"),
+						HttpStatus.BAD_REQUEST);
+			}
+			
+			return new ResponseEntity<ApiResponse>(
+					new ApiResponse(true,
+							"Pharmacy details added successfully"),
+					HttpStatus.CREATED);
+		} catch(Exception e) {
+			e.printStackTrace();
+			return new ResponseEntity<ApiResponse>(
+					new ApiResponse(false,
+							e.getMessage()),
+					HttpStatus.BAD_GATEWAY);
+		}
+	}
+	
+	@PutMapping("/updatePharmacy")
+	public ResponseEntity<?> updatePharmacy(@Valid @RequestBody Pharmacy pharmacy){
+		boolean response = pharmaService.updatePharmacy(pharmacy);
+		
+		if(response == false) {
+			return new ResponseEntity<ApiResponse>(
+				new ApiResponse(false, 
+					"Pharmacy update request failed"),
+				HttpStatus.BAD_REQUEST
+			);
+		}
+		
+		return new ResponseEntity<ApiResponse>(
+				new ApiResponse(true, 
+					"Pharmacy updated successfully"),
+				HttpStatus.OK
+			);
+	}
+	
+	@GetMapping("/allOrders")
+	public ResponseEntity<?> getAllOrders(){
+		List<OrderWrapper> responseList = pharmaService.getAllOrders();
+		if(responseList.isEmpty()) {
+			return new ResponseEntity<ApiResponse>(
+					new ApiResponse(false, "No orders found"),
+					HttpStatus.NOT_FOUND);
+		}
+		return new ResponseEntity<List<OrderWrapper>>(
+				responseList,
+				HttpStatus.OK);
+	}
+	
+	@GetMapping("/allOrders/{pharmaId}")
+	public ResponseEntity<?> getAllOrdersByPharmaId(@PathVariable String pharmaId){
+		List<OrderWrapper> orders = pharmaService.getAllOrdersByPharmaId(pharmaId);
+		if(orders.isEmpty()) {
+			return new ResponseEntity<ApiResponse>(
+					new ApiResponse(false, "No orders found for the pharmacy."),
+					HttpStatus.NOT_FOUND);
+		}
+		return new ResponseEntity<List<OrderWrapper>>(
+				orders,
+				HttpStatus.OK);
+	}
+	
+	
+	@PostMapping("/allot-medicine")
+	public ResponseEntity<?> addSupply(@Valid @RequestBody Supply supply){
+		boolean response = pharmaService.addSupply(supply);
+		if(response) {
+			return new ResponseEntity<ApiResponse>(
+					new ApiResponse(true, "Successfully alloted medicine"), 
+					HttpStatus.OK
+				);
+		}
+		return new ResponseEntity<ApiResponse>(
+				new ApiResponse(false, "Medicine allocation failed"), 
+				HttpStatus.BAD_REQUEST
+			);
+	}
+
+}
